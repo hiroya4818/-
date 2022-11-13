@@ -3,7 +3,7 @@ import { Observable, of } from 'rxjs';
 import { Member } from './member';
 import { MEMBERS } from './mock-members';
 import { MessageService } from './message.service';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { catchError, map, tap } from 'rxjs/operators'
 
 @Injectable({
@@ -11,6 +11,9 @@ import { catchError, map, tap } from 'rxjs/operators'
 })
 export class MemberService {
   private memebersUrl = 'api/members';
+  httpOptions = {
+    headers: new HttpHeaders({ 'Content-Type': 'application/json'})
+  }
 
   constructor(
     private messageService: MessageService,
@@ -26,8 +29,20 @@ export class MemberService {
   }
 
   getMember(id: number): Observable<Member> {
-    this.messageService.add(`MemberServie: 社員データ(id=${id})を取得しました`);
-    return of(MEMBERS.find(member => member.id === id));
+    const url = `${this.memebersUrl}/${id}`;
+    return this.http.get<Member>(url)
+      .pipe(
+        tap(_ => this.log(`社員データ$id=${id}を取得しました`)),
+        catchError(this.handleError<Member>(`getMember id=${id}`))
+      );
+  }
+
+  updateMember(member: Member): Observable<any> {
+    return this.http.put(this.memebersUrl, member, this.httpOptions)
+      .pipe(
+        tap(_ => this.log(`社員データ(id=${member.id})を変更しました`)),
+        catchError(this.handleError<any>('updateMember'))
+      )
   }
 
   private log(message: string){
